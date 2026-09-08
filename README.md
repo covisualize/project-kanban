@@ -6,7 +6,7 @@ This repository currently contains the **application shell only**: Next.js (App 
 
 ## Prerequisites
 
-- Node.js 20+ (Node 22 is fine)
+- Node.js `>=20.9.0`
 - npm 10+
 
 ## Install
