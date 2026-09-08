@@ -1,14 +1,27 @@
 "use client";
 
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCorners,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { BoardColumn } from "@/components/board-column";
 import { CardFormDialog } from "@/components/card-form-dialog";
-import { CardItem } from "@/components/card-item";
-import { deleteProject, updateProject } from "@/lib/api-client";
+import { updateCard, deleteProject, updateProject } from "@/lib/api-client";
 import { groupCardsByStatus } from "@/lib/group-cards";
+import { applyBoardDrag, type BoardDragResult } from "@/lib/move-card";
 import type { Card, CardStatus, Project } from "@/lib/types";
-import { CARD_STATUS_LABELS, CARD_STATUSES } from "@/lib/types";
+import { CARD_STATUSES } from "@/lib/types";
 import {
   btnDanger,
   btnPrimary,
@@ -23,15 +36,78 @@ type BoardProps = {
   cards: Card[];
 };
 
-/** Project board: columns from card status, mutations via CRUD APIs. */
-export function Board({ project, cards }: BoardProps) {
+/** Project board: @dnd-kit columns, mutations via existing CRUD APIs. */
+export function Board({ project, cards: serverCards }: BoardProps) {
   const router = useRouter();
-  const grouped = groupCardsByStatus(cards);
+  const [cards, setCards] = useState(serverCards);
   const [dialog, setDialog] = useState<"create" | Card | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(project.name);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [prevServerCards, setPrevServerCards] = useState(serverCards);
+  if (serverCards !== prevServerCards) {
+    setPrevServerCards(serverCards);
+    setCards(serverCards);
+  }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const columns = groupCardsByStatus(cards);
+  const activeCard = activeId
+    ? (cards.find((card) => card.id === activeId) ?? null)
+    : null;
+
+  async function persistMove(result: BoardDragResult) {
+    const snapshot = cards;
+    setCards(result.cards);
+    setError(null);
+    setPending(true);
+    try {
+      await Promise.all(
+        result.patches.map((patch) =>
+          updateCard(patch.id, { status: patch.status, order: patch.order }),
+        ),
+      );
+      router.refresh();
+    } catch (err) {
+      setCards(snapshot);
+      setError(
+        err instanceof Error ? err.message : "Could not save card position",
+      );
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function applyAndPersist(activeId: string, overId: string) {
+    const result = applyBoardDrag(cards, activeId, overId);
+    if (result.patches.length === 0) return;
+    void persistMove(result);
+  }
+
+  function onDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
+  }
+
+  function onDragEnd(event: DragEndEvent) {
+    const overId = event.over ? String(event.over.id) : null;
+    const draggedId = String(event.active.id);
+    setActiveId(null);
+    if (!overId) return;
+    applyAndPersist(draggedId, overId);
+  }
+
+  function onDragCancel() {
+    setActiveId(null);
+  }
 
   async function onRename(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,6 +139,10 @@ export function Board({ project, cards }: BoardProps) {
       setError(err instanceof Error ? err.message : "Could not delete project");
       setPending(false);
     }
+  }
+
+  function onStatusChange(card: Card, status: CardStatus) {
+    applyAndPersist(card.id, status);
   }
 
   return (
@@ -110,6 +190,15 @@ export function Board({ project, cards }: BoardProps) {
               {project.name}
             </h1>
           )}
+          <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+            Drag the handle on a card to move it between columns or reorder
+            within a column. Keyboard: focus the handle, Space to pick up, arrow
+            keys to move, Space to drop, Escape to cancel. The{" "}
+            <strong className="font-medium text-zinc-800 dark:text-zinc-200">
+              Status
+            </strong>{" "}
+            select is the accessible alternative to dragging between columns.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -146,19 +235,37 @@ export function Board({ project, cards }: BoardProps) {
 
       {error ? <p className={`mt-4 ${errorClass}`}>{error}</p> : null}
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        {CARD_STATUSES.map((status) => (
-          <BoardColumn
-            key={status}
-            status={status}
-            cards={grouped[status]}
-            pending={pending}
-            onEdit={(item) => setDialog(item)}
-            onError={setError}
-            onPending={setPending}
-          />
-        ))}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragCancel={onDragCancel}
+      >
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {CARD_STATUSES.map((status) => (
+            <BoardColumn
+              key={status}
+              status={status}
+              cards={columns[status]}
+              pending={pending}
+              onEdit={(item) => setDialog(item)}
+              onError={setError}
+              onPending={setPending}
+              onStatusChange={onStatusChange}
+            />
+          ))}
+        </div>
+        <DragOverlay>
+          {activeCard ? (
+            <div className="rounded-lg border border-zinc-300 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-950">
+              <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
+                {activeCard.title}
+              </p>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {dialog !== null ? (
         <CardFormDialog
@@ -170,53 +277,3 @@ export function Board({ project, cards }: BoardProps) {
     </div>
   );
 }
-
-type BoardColumnProps = {
-  status: CardStatus;
-  cards: Card[];
-  pending: boolean;
-  onEdit: (card: Card) => void;
-  onError: (message: string | null) => void;
-  onPending: (value: boolean) => void;
-};
-
-function BoardColumn({
-  status,
-  cards,
-  pending,
-  onEdit,
-  onError,
-  onPending,
-}: BoardColumnProps) {
-  return (
-    <section
-      aria-labelledby={`column-${status}`}
-      className="flex min-h-64 flex-col rounded-xl border border-zinc-200 bg-zinc-100/80 p-3 dark:border-zinc-800 dark:bg-zinc-900/60"
-    >
-      <h2
-        id={`column-${status}`}
-        className="px-1 text-sm font-semibold text-zinc-800 dark:text-zinc-200"
-      >
-        {CARD_STATUS_LABELS[status]}
-        <span className="ml-2 font-normal text-zinc-500">{cards.length}</span>
-      </h2>
-      <ul className="mt-3 flex flex-1 flex-col gap-3">
-        {cards.length === 0 ? (
-          <li className="px-1 text-sm text-zinc-500">No cards</li>
-        ) : (
-          cards.map((card) => (
-            <CardItem
-              key={card.id}
-              card={card}
-              pending={pending}
-              onEdit={() => onEdit(card)}
-              onError={onError}
-              onPending={onPending}
-            />
-          ))
-        )}
-      </ul>
-    </section>
-  );
-}
-

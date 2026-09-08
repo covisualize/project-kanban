@@ -2,11 +2,11 @@
 
 Kanban board to schedule and track projects.
 
-This repository contains the **application shell**, a **persisted Project/Card API**, and a **first board UI** (list projects, open a board, manage cards). There is no authentication, drag-and-drop, or calendar view yet.
+This repository contains the **application shell**, a **persisted Project/Card API**, and a **kanban board UI** with drag-and-drop (columns, card CRUD, reorder). There is no authentication or calendar view yet.
 
 ## Prerequisites
 
-- Node.js `>=20.9.0`
+- Node.js `>=22`
 - npm 10+
 
 ## Install
@@ -42,7 +42,26 @@ Open [http://localhost:3000](http://localhost:3000).
 5. **Columns and cards** — the board shows **To do**, **In progress**, and **Done** from each card's `status`.
 6. **Create a card** — **New card**, fill the form (title, description, status, optional due date), **Create card**.
 7. **Edit / delete a card** — **Edit** opens the same form; **Delete** confirms then removes it.
-8. **Change status** — use the **Status** select on the card (or in the edit form). There is no drag-and-drop.
+8. **Drag and drop** — grab the **six-dot handle** on a card. Drop on another card or on a column to move it. Order and status are saved with `PATCH /api/cards/:id`.
+9. **Accessible alternative** — the **Status** select on each card (and in the edit form) still moves a card between columns without dragging. Keyboard drag: focus the handle, **Space** to pick up, **arrow keys** to move, **Space** to drop, **Escape** to cancel.
+
+### How to test drag-and-drop persistence
+
+1. Reset demo data: `npm run seed`
+2. Start the app: `npm run dev`
+3. Open [http://localhost:3000/projects/demo-project](http://localhost:3000/projects/demo-project)
+4. **Reorder within a column:** In **To do**, drag **Choose color palette** above **Draft homepage copy**. Palette should be first.
+5. **Move between columns:** Drag **Draft homepage copy** onto **Build landing hero** in **In progress**. Homepage should sit above the hero; **To do** should only have the palette.
+6. Refresh the page. The same positions should remain (palette in To do; homepage then hero in In progress).
+7. Optional API check:
+
+```bash
+curl -s http://localhost:3000/api/projects/demo-project
+```
+
+Confirm `demo-card-todo-2` is still `todo` with `"order": 0`, and `demo-card-todo-1` is `in_progress` with `"order": 0` (`demo-card-doing-1` at `"order": 1`).
+
+8. **Without a mouse:** change a card's **Status** select — that is the keyboard/accessible path and also persists.
 
 Health check (JSON `{ "status": "ok" }`):
 
@@ -120,4 +139,5 @@ npm run lint
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 |
 | Persistence | Local SQLite (`better-sqlite3`, file `data/kanban.sqlite`) |
+| Drag and drop | `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` |
 | Auth | None (intentional for this stage) |
