@@ -2,7 +2,7 @@
 
 Kanban board to schedule and track projects.
 
-This repository currently contains the **application shell** plus a **persisted Project/Card API**. There is no authentication and no board UI yet.
+This repository contains the **application shell**, a **persisted Project/Card API**, and a **first board UI** (list projects, open a board, manage cards). There is no authentication, drag-and-drop, or calendar view yet.
 
 ## Prerequisites
 
@@ -15,27 +15,40 @@ This repository currently contains the **application shell** plus a **persisted 
 npm install
 ```
 
-## Development
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser. The home page should render the `project-kanban` shell.
-
-Health check (JSON `{ "status": "ok" }`):
-
-[http://localhost:3000/api/health](http://localhost:3000/api/health)
-
-On first API request, a local SQLite file is created at `data/kanban.sqlite` and seeded with one demo project (`demo-project`) and cards across `todo`, `in_progress`, and `done`.
-
-## Seed
+## Seed demo data
 
 Reset the local database to the demo project and cards (destructive):
 
 ```bash
 npm run seed
 ```
+
+This creates `Website relaunch` (`demo-project`) with cards in **To do**, **In progress**, and **Done**.
+
+## Development
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+### Where to click (board UI)
+
+1. **Projects list** — `/` lists every project. After seed you should see **Website relaunch**.
+2. **Create a project** — fill **Name** and click **Create project**. You land on the new board.
+3. **Rename / delete a project** — on the list, click **Rename** or **Delete**. On a board, use **Rename project** / **Delete project**.
+4. **Open a board** — click the project name or **Open**. Direct URL: [http://localhost:3000/projects/demo-project](http://localhost:3000/projects/demo-project).
+5. **Columns and cards** — the board shows **To do**, **In progress**, and **Done** from each card's `status`.
+6. **Create a card** — **New card**, fill the form (title, description, status, optional due date), **Create card**.
+7. **Edit / delete a card** — **Edit** opens the same form; **Delete** confirms then removes it.
+8. **Change status** — use the **Status** select on the card (or in the edit form). There is no drag-and-drop.
+
+Health check (JSON `{ "status": "ok" }`):
+
+[http://localhost:3000/api/health](http://localhost:3000/api/health)
+
+On first API or page load, a local SQLite file is created at `data/kanban.sqlite` and seeded with the demo project if the file is new.
 
 ## API
 

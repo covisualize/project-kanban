@@ -1,16 +1,28 @@
 # CODEMAP
 
 - `app/layout.tsx` — root HTML layout, fonts, metadata
-- `app/page.tsx` — home page shell
+- `app/page.tsx` — project list (`/`)
+- `app/projects/[projectId]/page.tsx` — board: columns + cards
+- `app/projects/[projectId]/not-found.tsx` — missing project
 - `app/api/health/route.ts` — `GET` JSON liveness (`{ status: "ok" }`)
 - `app/api/projects/route.ts` — list/create projects
 - `app/api/projects/[projectId]/route.ts` — get/update/delete project
 - `app/api/projects/[projectId]/cards/route.ts` — list/create cards on a project
 - `app/api/cards/[cardId]/route.ts` — get/update/delete card
 - `app/globals.css` — Tailwind v4 entry
-- `lib/kanban.ts` — Project/Card types, SQLite store, seed
+- `components/app-shell.tsx` — header + main column
+- `components/project-list.tsx` — create / rename / delete / open projects
+- `components/board.tsx` — columns, project rename/delete, new card
+- `components/card-item.tsx` — card body, status select, edit/delete
+- `components/card-form-dialog.tsx` — create/edit card form
+- `lib/types.ts` — Project/Card types and column labels
+- `lib/kanban.ts` — SQLite store, seed
+- `lib/api-client.ts` — browser fetch wrappers for existing CRUD routes
+- `lib/group-cards.ts` — group cards by `status`
 - `lib/http.ts` — JSON body parse + KanbanError HTTP mapping
+- `lib/ui.ts` — shared Tailwind class strings
 - `lib/kanban.test.ts` — happy-path CRUD tests (`npm test`)
+- `lib/group-cards.test.ts` — column grouping tests
 - `scripts/seed.ts` — reset local DB to demo data (`npm run seed`)
 - `specs/kanban-api.md` — HTTP contracts
 - `next.config.ts` — Next.js config (`serverExternalPackages` for better-sqlite3)
