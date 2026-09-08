@@ -76,10 +76,11 @@ export type CardPatch = {
   title?: string;
   description?: string;
   status?: CardStatus;
+  order?: number;
   dueDate?: string | null;
 };
 
-/** PATCH /api/cards/:id — update card fields (including status). */
+/** PATCH /api/cards/:id — update card fields (including status and order). */
 export async function updateCard(
   cardId: string,
   patch: CardPatch,

@@ -14,8 +14,8 @@ export default function Home() {
         Projects
       </h1>
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Open a project to see columns and cards. Change status with the select
-        on each card — there is no drag-and-drop yet.
+        Open a project to see columns and cards. Drag cards between columns or
+        use the Status select.
       </p>
       <ProjectList projects={projects} />
     </AppShell>
