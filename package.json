@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test lib/kanban.test.ts",
+    "test": "tsx --test lib/kanban.test.ts lib/group-cards.test.ts",
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {

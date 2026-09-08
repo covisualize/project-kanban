@@ -1,30 +1,14 @@
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import Database from "better-sqlite3";
+import {
+  CARD_STATUSES,
+  type Card,
+  type CardStatus,
+  type Project,
+} from "./types";
 
-/** Kanban column / card status values. */
-export const CARD_STATUSES = ["todo", "in_progress", "done"] as const;
-
-export type CardStatus = (typeof CARD_STATUSES)[number];
-
-export type Project = {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type Card = {
-  id: string;
-  projectId: string;
-  title: string;
-  description: string;
-  status: CardStatus;
-  order: number;
-  dueDate: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+export { CARD_STATUSES, type Card, type CardStatus, type Project };
 
 export const DEMO_PROJECT_ID = "demo-project";
 
