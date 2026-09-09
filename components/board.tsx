@@ -63,6 +63,9 @@ export function Board({ project, cards: serverCards }: BoardProps) {
   const activeCard = activeId
     ? (cards.find((card) => card.id === activeId) ?? null)
     : null;
+  const total = cards.length;
+  const doneCount = columns.done.length;
+  const percent = total === 0 ? 0 : Math.round((doneCount / total) * 100);
 
   async function persistMove(result: BoardDragResult) {
     const snapshot = cards;
@@ -186,19 +189,45 @@ export function Board({ project, cards: serverCards }: BoardProps) {
               </div>
             </form>
           ) : (
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-              {project.name}
-            </h1>
+            <>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+                {project.name}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                <span className="tabular-nums">
+                  {total} card{total === 1 ? "" : "s"} · {doneCount} done ·{" "}
+                  {percent}% complete
+                </span>
+              </div>
+              <div
+                className="mt-2 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800"
+                role="progressbar"
+                aria-label="Board progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={percent}
+              >
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-[width]"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+            </>
           )}
-          <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-            Drag the handle on a card to move it between columns or reorder
-            within a column. Keyboard: focus the handle, Space to pick up, arrow
-            keys to move, Space to drop, Escape to cancel. The{" "}
-            <strong className="font-medium text-zinc-800 dark:text-zinc-200">
-              Status
-            </strong>{" "}
-            select is the accessible alternative to dragging between columns.
-          </p>
+          <details className="mt-3 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+            <summary className="cursor-pointer font-medium text-zinc-700 hover:underline dark:text-zinc-300">
+              How to move cards
+            </summary>
+            <p className="mt-1">
+              Drag the handle on a card to move it between columns or reorder
+              within a column. Keyboard: focus the handle, Space to pick up,
+              arrow keys to move, Space to drop, Escape to cancel. The{" "}
+              <strong className="font-medium text-zinc-800 dark:text-zinc-200">
+                Status
+              </strong>{" "}
+              select is the accessible alternative to dragging between columns.
+            </p>
+          </details>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -258,10 +287,27 @@ export function Board({ project, cards: serverCards }: BoardProps) {
         </div>
         <DragOverlay>
           {activeCard ? (
-            <div className="rounded-lg border border-zinc-300 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-950">
-              <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
-                {activeCard.title}
-              </p>
+            <div className="rotate-[1.5deg] scale-[1.02] rounded-xl border border-zinc-300 bg-white p-3 shadow-xl dark:border-zinc-700 dark:bg-zinc-950">
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 rounded-full ${
+                    activeCard.status === "done"
+                      ? "bg-emerald-500"
+                      : activeCard.status === "in_progress"
+                        ? "bg-blue-500"
+                        : "bg-zinc-400"
+                  }`}
+                />
+                <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
+                  {activeCard.title}
+                </p>
+              </div>
+              {activeCard.description ? (
+                <p className="mt-1 line-clamp-2 text-[13px] text-zinc-600 dark:text-zinc-400">
+                  {activeCard.description}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </DragOverlay>
